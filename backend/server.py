@@ -110,6 +110,8 @@ async def get_current_user(request: Request) -> dict:
         user = await db.users.find_one({"id": payload["sub"]})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
+        if user.get("status") == "inactive":
+            raise HTTPException(status_code=403, detail="Account is inactive")
         user.pop("_id", None)
         user.pop("password_hash", None)
         return user
@@ -351,31 +353,38 @@ logger = logging.getLogger(__name__)
 @api_router.post("/auth/login")
 async def login(body: LoginIn, request: Request, response: Response):
     email = body.email.lower().strip()
-    ip = request.client.host if request.client else "unknown"
+    # Trust X-Forwarded-For (first entry) under reverse proxy; fall back to peer IP
+    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    ip = fwd or (request.client.host if request.client else "unknown")
     identifier = f"{ip}:{email}"
+    email_identifier = f"email:{email}"
 
-    # Brute force check
-    attempt = await db.login_attempts.find_one({"identifier": identifier})
-    if attempt and attempt.get("count", 0) >= 5:
-        locked_until = attempt.get("locked_until")
-        if locked_until and datetime.fromisoformat(locked_until) > now_utc():
-            raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
+    # Brute force check (both IP+email and email-only)
+    for ident in (identifier, email_identifier):
+        attempt = await db.login_attempts.find_one({"identifier": ident})
+        if attempt and attempt.get("count", 0) >= 5:
+            locked_until = attempt.get("locked_until")
+            if locked_until and datetime.fromisoformat(locked_until) > now_utc():
+                raise HTTPException(status_code=429, detail="Too many failed attempts. Try again later.")
 
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(body.password, user.get("password_hash", "")):
-        new_count = (attempt.get("count", 0) if attempt else 0) + 1
-        locked_until = iso(now_utc() + timedelta(minutes=15)) if new_count >= 5 else None
-        await db.login_attempts.update_one(
-            {"identifier": identifier},
-            {"$set": {"count": new_count, "locked_until": locked_until, "updated_at": iso(now_utc())}},
-            upsert=True,
-        )
+        # Increment counters for both IP+email and email-only
+        for ident in (identifier, email_identifier):
+            attempt = await db.login_attempts.find_one({"identifier": ident})
+            new_count = (attempt.get("count", 0) if attempt else 0) + 1
+            locked_until = iso(now_utc() + timedelta(minutes=15)) if new_count >= 5 else None
+            await db.login_attempts.update_one(
+                {"identifier": ident},
+                {"$set": {"count": new_count, "locked_until": locked_until, "updated_at": iso(now_utc())}},
+                upsert=True,
+            )
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if user.get("status") == "inactive":
         raise HTTPException(status_code=403, detail="Account is inactive")
 
-    await db.login_attempts.delete_one({"identifier": identifier})
+    await db.login_attempts.delete_many({"identifier": {"$in": [identifier, email_identifier]}})
 
     access = create_access_token(user["id"], user["email"], user["role"])
     refresh = create_refresh_token(user["id"])
@@ -442,7 +451,9 @@ async def reset_password(body: ResetPasswordIn):
     expires = rec.get("expires_at")
     if isinstance(expires, str):
         expires = datetime.fromisoformat(expires)
-    if expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires < now_utc():
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < now_utc():
         raise HTTPException(status_code=400, detail="Token expired")
 
     await db.users.update_one({"id": rec["user_id"]},

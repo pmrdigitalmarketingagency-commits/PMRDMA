@@ -1,0 +1,70 @@
+{
+  "summary": "Phase 3 security audit of PMR backend (40 tests across client isolation, public/private boundaries, RBAC, role-escalation, brute force, token security, password reset, secrets leakage, CMS draft isolation, invoice uniqueness, lead idempotency). 39/40 passed. Found 1 CRITICAL bug (password reset endpoint is completely broken due to operator-precedence error) and 1 HIGH-severity weakness (brute-force lockout is effectively bypassable because the identifier uses `request.client.host` which is the ingress proxy IP that rotates across backend replicas).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/reset-password",
+        "issue": "Password reset is completely broken. Line 445 of server.py has an operator-precedence bug: `if expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires < now_utc():` is parsed by Python as `A if B else (C < D)`. When `expires_at` is loaded from Mongo it is tz-naive, so the ternary returns the datetime itself (truthy) and the endpoint ALWAYS returns 400 'Token expired'. No user can ever reset their password.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "POST /api/auth/login (brute-force lockout)",
+        "issue": "Brute-force protection is bypassable in this deployment. Identifier is `request.client.host:email` but under K8s ingress + multiple backend replicas, `request.client.host` is the proxy pod IP which rotates per request. Observed login_attempts collection showed the same email split across two distinct IPs (10.201.1.194 and 10.201.4.160), each never crossing the 5-attempt threshold. In the test it took 11-15 attempts (instead of 6) to trigger a 429. Fix: trust `X-Forwarded-For` (first entry) OR key the counter on email alone (plus a global IP counter) rather than `IP:email`.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "server.py JWT_SECRET env var",
+        "issue": "JWT secret in /app/backend/.env is 64 hex chars (32 bytes) — fine. However jwt lib warns InsecureKeyLengthWarning when encoded tokens are produced with the test's 12-byte 'wrong-secret'. Not a product issue — informational only."
+      },
+      {
+        "endpoint": "GET /api/clients",
+        "issue": "For a client-role user whose record has been (soft) deleted, no filter on `status`; a client-role user with status=inactive can still log in via valid Bearer token (no inactive check in get_current_user). Login endpoint blocks inactive users, but tokens issued before deactivation remain valid until expiry (24h). Consider rejecting inactive users in get_current_user."
+      },
+      {
+        "endpoint": "set_auth_cookies",
+        "issue": "Cookies use samesite='none' + secure=True which is correct for cross-site, but there is no CSRF token on state-changing endpoints. Bearer-token path is fine; cookie-based clients are vulnerable to CSRF for POST/PATCH/DELETE if browser allows cross-site cookie sending. Consider double-submit CSRF token or SameSite='lax' when same-site is acceptable."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_security_phase3.py",
+    "/app/test_reports/pytest/pytest_security_phase3.xml"
+  ],
+  "action_items": [
+    "FIX CRITICAL: In /app/backend/server.py around line 442-446, rewrite the expiry check as:\n    expires = rec.get('expires_at')\n    if isinstance(expires, str):\n        expires = datetime.fromisoformat(expires)\n    if expires.tzinfo is None:\n        expires = expires.replace(tzinfo=timezone.utc)\n    if expires < now_utc():\n        raise HTTPException(status_code=400, detail='Token expired')",
+    "FIX HIGH: Brute-force identifier should not depend on `request.client.host` under K8s. Use `request.headers.get('x-forwarded-for','').split(',')[0].strip() or request.client.host` for IP, OR drop IP from identifier entirely and use email only (combine with a per-IP global counter if DoS-of-user is a concern).",
+    "Consider rejecting inactive users inside get_current_user so soft-deleted accounts cannot continue using an existing JWT until its 24h expiry.",
+    "Consider CSRF protection for cookie-based auth on state-changing endpoints (POST/PATCH/DELETE)."
+  ],
+  "critical_code_review_comments": [
+    "server.py line 445: Buggy ternary — operator precedence makes password-reset expiry check always truthy on tz-naive datetimes, which is the DB-loaded shape. Needs refactor to a plain if/else.",
+    "server.py line 354-355: `identifier = f'{ip}:{email}'` with `ip = request.client.host` is unreliable behind an ingress with multiple pods; counters get split per proxy IP, degrading brute-force protection.",
+    "server.py get_current_user (line 98): does not check `status != 'inactive'` — deactivated users with a still-valid JWT keep access up to 24h.",
+    "server.py file is 1256 lines — exceeds the 700-line guideline. Split by resource domain (auth, users, leads, clients, projects, tasks, cms, invoices, portal) for maintainability.",
+    "server.py line 1057: `year = datetime.now().year` uses local time; should use `now_utc().year` for consistency with other timestamps.",
+    "server.py line 1039: role check uses hard-coded set — reasonable, but a small helper (e.g. `require_roles` as a dependency) is already used elsewhere; this inline check works but is inconsistent in style."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_security_phase3.py"
+  ],
+  "success_rate": {
+    "backend": "97.5% (39/40 tests pass)",
+    "frontend": "N/A - backend-only review"
+  },
+  "test_credentials": "admin@pmratnam.com/Admin@PMR2026, sales@pmratnam.com/Sales@123, pm@pmratnam.com/PM@123, employee@pmratnam.com/Emp@123, client@pmratnam.com/Client@123",
+  "seed_data_creation": "Created in-test (prefix TEST_): two client orgs (A and B) each with its own client-role user, project, task, invoice; a draft blog post; a password-reset test user; two public leads. All data is tagged with 'TEST_' and random uuid suffix for easy cleanup.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Primary suite: /app/backend/tests/test_security_phase3.py (pytest). The 1 failing test (TestPasswordReset.test_reset_token_single_use_and_invalid) exposes a real server bug — leave it failing until the main agent fixes server.py reset-password expiry handling. The brute-force test required bumping iteration count to 15 attempts to overcome ingress load-balancing; if the main agent fixes the identifier to use X-Forwarded-For or email-only, tighten the test back to a stricter bound (e.g. 6 attempts). The existing /app/backend/tests/test_pmr_backend.py (28 functional tests from iteration 1) was not re-run in this iteration.",
+  "rca of the issue": {
+    "password_reset_critical": "server.py:445 — the expression `expires.replace(tzinfo=timezone.utc) if expires.tzinfo is None else expires < now_utc()` is parsed by Python as `(expires.replace(tzinfo=timezone.utc)) if expires.tzinfo is None else (expires < now_utc())`. When Mongo returns the datetime tz-naive (default pymongo behavior), the ternary evaluates to a datetime object which is always truthy, so the `if` branch raises HTTP 400 unconditionally. Reproduction: POST /api/auth/forgot-password for any valid user, read the token from the backend log (or db.password_reset_tokens), POST /api/auth/reset-password with that token — always returns 400 'Token expired'. Mitigation: split the ternary into an explicit `if expires.tzinfo is None: expires = expires.replace(tzinfo=timezone.utc)` block before the comparison.",
+    "brute_force_bypass": "server.py:354 — identifier `f'{request.client.host}:{email}'` depends on the direct TCP peer, which in K8s is the ingress controller's pod IP. With multiple ingress replicas (or round-robin), consecutive requests from the same real client arrive with different `request.client.host` values, splitting the login_attempts counter across multiple documents and defeating the 5-attempt lockout. Reproduction: observe db.login_attempts after a brute-force burst — attempts for the same email appear under multiple IP identifiers each below count=5. Mitigation: honor X-Forwarded-For (first hop) or key counter on email alone with a secondary global per-IP guard."
+  }
+}
