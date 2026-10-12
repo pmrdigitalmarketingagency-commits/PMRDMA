@@ -1,0 +1,35 @@
+{
+  "summary": "Backend-only testing for PMR Digital Marketing Agency API. Wrote comprehensive pytest suite covering auth (login/logout/me/brute-force), leads (public submit, RBAC, stage validation, convert idempotency), clients (CRUD + client-role isolation), projects (status/progress), tasks (status update + recalculation), overview (staff vs client), CMS (blog/portfolio/testimonials draft-vs-publish filters), services (seeded >=9), invoices (server-side total computation + sequential numbering), payments (status transitions partially_paid -> paid), client invoice isolation, client portal overview, and user RBAC (admin-only create + super_admin-only deactivate). All 28 tests passed against the public REACT_APP_BACKEND_URL.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/leads/{id}/convert", "issue": "Lead convert does not create a lead_activity record (minor; audit log would be helpful)"},
+      {"endpoint": "/api/invoices", "issue": "Non-admin/finance/sales staff (project_manager/employee/marketing_executive) get 403 on GET /api/invoices (hard-coded role list). Fine per RBAC spec but worth documenting."},
+      {"endpoint": "/api/auth/login", "issue": "Cookies use SameSite=None; Secure=True which is appropriate for cross-origin, but means local non-HTTPS clients cannot rely on cookies (Bearer header still works)."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_pmr_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is ~1255 lines (single-file). Recommend splitting into routers (auth, leads, clients, projects, tasks, cms, invoices, portal) and models/ module for maintainability.",
+    "Brute-force identifier is IP:email; behind an ingress all clients may share an IP making legitimate users easier to lock out. Consider using email-only or hashed email + IP window with sliding reset.",
+    "Password reset tokens stored with datetime object (not iso string) while most datetimes are stored as ISO strings. The TTL index on expires_at only works if value is BSON Date (ok as-is for insert_one), but mixed types in codebase is error-prone.",
+    "reset_password datetime comparison line 445 has a nested conditional that can mis-handle naive datetimes; prefer explicit normalization before comparison.",
+    "Invoice _compute_invoice_totals mutates list items in place; fine but worth noting.",
+    "No pagination on list endpoints (.to_list(500/1000)) - will not scale with growth.",
+    "CORS allow_origins=['*'] with allow_credentials=True is invalid per spec; browsers reject credentialed requests with wildcard. Needs explicit origin in CORS_ORIGINS for production."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pmr_backend.py"
+  ],
+  "success_rate": {"backend": "100% (28/28)", "frontend": "N/A (skipped per request)"},
+  "test_credentials": "Used seeded users from /app/memory/test_credentials.md (admin/sales/pm/employee/client).",
+  "seed_data_creation": "Tests create ephemeral TEST_-prefixed leads/clients/projects/tasks/blog/portfolio/testimonials/invoices/users via APIs. No manual DB seeding required - backend seeds admin + demo users + services at startup.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend fully green on first iteration. Reuse /app/backend/tests/test_pmr_backend.py as regression suite. Note: brute-force test leaves a locked identifier (TEST_bf_* email + container IP) in db.login_attempts for 15 min - benign. CORS wildcard+credentials should be addressed before shipping to production domains."
+}
