@@ -1,0 +1,137 @@
+{
+  "brand": {
+    "name": "PMR Digital Marketing Agency",
+    "domain": "pmratnam.com",
+    "location": "Hyderabad, Telangana, India",
+    "tagline": "Your Growth Deserves More Than Ordinary Marketing.",
+    "primary_cta": "Book a Strategy Call",
+    "personality": [
+      "Bold",
+      "Strategic",
+      "Creative",
+      "Trustworthy",
+      "Technology-driven",
+      "Results-oriented",
+      "Professional",
+      "Approachable"
+    ]
+  },
+  "target_audiences": [
+    "Startups",
+    "SMBs & MSMEs",
+    "E-commerce Brands",
+    "Healthcare & Hospitals",
+    "Educational Institutions",
+    "Real Estate Developers",
+    "Coaches & Consultants"
+  ],
+  "theme_strategy": {
+    "marketing_website": "Dark hero with violet & deep indigo gradients, glassmorphism floating nav, glowing coral CTAs, transition into light crisp editorial sections for deep case study reading.",
+    "saas_dashboard": "Premium Dark SaaS Studio (#0B1020 background, #13192E surface, #1E2640 subtle borders). Densified data, vibrant status badges (Lime/Cyan/Coral), multi-view project/task systems.",
+    "client_portal": "Isolated executive dashboard view with simplified ROI metrics, project milestone tracker, deliverable approval cards, and direct message channel."
+  },
+  "typography": {
+    "font_families": {
+      "heading": "'Plus Jakarta Sans', sans-serif",
+      "body": "'Manrope', sans-serif",
+      "mono": "'JetBrains Mono', 'Fira Code', monospace"
+    },
+    "hierarchy": {
+      "h1_hero": "text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]",
+      "h2_section": "text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white",
+      "h3_card": "text-xl sm:text-2xl font-semibold tracking-tight",
+      "body_lg": "text-lg text-[#9297AD] leading-relaxed",
+      "body_md": "text-base text-[#9297AD] leading-relaxed",
+      "overline": "text-xs uppercase font-mono tracking-[0.25em] text-[#53D8FB]"
+    }
+  },
+  "colors": {
+    "core_palette": {
+      "midnight_bg": "#0B1020",
+      "deep_indigo": "#24104F",
+      "electric_violet": "#7957FF",
+      "vibrant_coral": "#FF6B6B",
+      "cyan_glow": "#53D8FB",
+      "lime_accent": "#C6F36B",
+      "soft_white_surface": "#F8F8FC",
+      "muted_text": "#9297AD",
+      "main_light_text": "#FFFFFF",
+      "border_dark": "#1E2640"
+    },
+    "gradients": {
+      "hero_violet_coral": "bg-gradient-to-r from-[#24104F] via-[#7957FF] to-[#FF6B6B]",
+      "card_indigo_cyan": "bg-gradient-to-br from-[#24104F]/80 via-[#0B1020] to-[#53D8FB]/20",
+      "button_coral_glow": "bg-gradient-to-r from-[#FF6B6B] to-[#7957FF] hover:shadow-[0_0_25px_rgba(255,107,107,0.5)]",
+      "accent_lime_cyan": "bg-gradient-to-r from-[#C6F36B] to-[#53D8FB]",
+      "glass_card": "backdrop-blur-xl bg-[#13192E]/80 border border-[#1E2640]"
+    }
+  },
+  "layout_and_grids": {
+    "marketing_bento": "grid grid-cols-1 md:grid-cols-8 lg:grid-cols-12 gap-6 lg:gap-8",
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6",
+    "spacing_scale": {
+      "section_padding": "py-20 lg:py-28 px-4 sm:px-6 lg:px-12",
+      "container_max_width": "max-w-7xl mx-auto"
+    }
+  },
+  "key_features_and_views": {
+    "public_website": [
+      "Header with glassmorphism blur, Brand Logo, Nav links, Strategy Call CTA button",
+      "Hero Section with headline 'Your Growth Deserves More Than Ordinary Marketing', animated stats ticker, floating strategy preview badge",
+      "Interactive ROI Growth Calculator widget",
+      "9 Core Services Showcase: SEO & Organic Search, Performance Ads (PPC), Social Media Mastery, Content Strategy, Conversion Rate Optimization (CRO), Web & App Engineering, Email & Automation, Brand Identity, Data & Analytics",
+      "6-Step Growth Methodology Engine: Audit & Insight -> Strategy Blueprint -> Omnichannel Execution -> Data Analytics -> CRO Optimization -> Scale & Expand",
+      "Filterable Portfolio Bento Grid with real client metrics (+340% ROAS, 12x Revenue Increase)",
+      "Target Industry Tabs (Startups, E-commerce, Real Estate, Healthcare, Education, MSMEs)",
+      "Interactive Strategy Booking Dialog / Lead Generation Form",
+      "Testimonials Marquee & Industry Recognition",
+      "Insights & Blog section with search & topic tags",
+      "Footer with Hyderabad office details, newsletter signup, quick links, and social channels"
+    ],
+    "saas_dashboard": [
+      "Sidebar Navigation with role selector (Admin / Agency Manager / Team Member)",
+      "Overview Dashboard: Revenue charts, active leads count, ongoing project statuses, team capacity, task throughput",
+      "CRM & Lead Management Kanban pipeline (New, Contacted, Proposal Sent, Negotiation, Closed Won, Lost)",
+      "Client Directory with detailed health scores, retainer contracts, and quick portal links",
+      "Project Tracker: Table view, Kanban board, timeline view with budget burn rate",
+      "Task Kanban System with priority tags, assignees, deadlines, subtasks",
+      "Content Calendar Planner with social platform tags & approval workflows",
+      "Financials & Invoicing: Status badges (Paid, Pending, Overdue), PDF generator trigger, payment links",
+      "Files & Asset Management: Shared creative assets, brand guidelines, campaign decks",
+      "Analytics Reports Generator with export capability"
+    ],
+    "client_portal": [
+      "Client Dashboard: Key campaign KPIs (ROAS, CPL, Organic Traffic, Impressions)",
+      "Milestone Tracker & Deliverables Approval Queue",
+      "Invoice Payment Center & Contract Repository",
+      "Direct Messaging & Strategy Meeting Scheduler"
+    ]
+  },
+  "media_assets": {
+    "hero_team": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "strategy_meeting": "https://images.unsplash.com/photo-1556761175-b413da4baf72?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "analytics_workspace": "https://images.unsplash.com/photo-1521737711867-e3b97375f902?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "hyderabad_office": "https://images.unsplash.com/photo-1578991624414-276ef23a534f?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "client_logos": [
+      "https://images.unsplash.com/photo-1618242556516-6858a8f34cb0?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "https://images.unsplash.com/photo-1771790255238-b23bd0929c7a?crop=entropy&cs=srgb&fm=jpg&q=85"
+    ]
+  },
+  "motion_and_interactions": {
+    "library": "framer-motion",
+    "hover_effects": "transition-all duration-300 hover:-translate-y-1 hover:border-[#7957FF]/50",
+    "cta_button_hover": "transition-transform duration-200 active:scale-95 hover:shadow-[0_0_30px_rgba(255,107,107,0.6)]",
+    "modal_transitions": "AnimatePresence with opacity and scale spring animation"
+  },
+  "testing_attributes": {
+    "rule": "Every button, link, tab, input, dialog, card, and table row MUST include data-testid attribute in kebab-case format."
+  },
+  "instructions_to_main_agent": [
+    "Execute full component architecture in React .js files.",
+    "Implement navigation switching between Public Website, Agency Admin Dashboard, and Client Portal seamlessly.",
+    "Ensure the hero uses dark violet/indigo/coral gradients with glowing highlights.",
+    "Do NOT rely on generic default styling — use custom Tailwind color values provided in this config.",
+    "Include sample data for CRM, projects, content calendar, and invoices to make the platform feel like an active, lived-in SaaS product.",
+    "Add interactive elements: Lead calculator, Kanban drag-and-drop or column movement, filtering tabs, interactive strategy booking modal."
+  ]
+}
